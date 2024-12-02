@@ -60,10 +60,9 @@ from nedrex.relations import (
 
 from nedrex.static import (get_metadata)
 
-
 API_URL = "https://api.nedrex.net/licensed/"
-#API_URL = "https://dev.api.nedrex.net/licensed/"
 API_KEY = requests.post(f"{API_URL}admin/api_key/generate", json={"accept_eula": True}).json()
+MODE_OPEN = False
 
 
 SEEDS = [
@@ -424,29 +423,75 @@ class TestRoutesFailWithoutAPIKey:
                 pass
         assert "no API key set in the configuration" == str(excinfo.value)
 
+    # def test_disorder_routes_fail(self, set_base_url):
+    #     disorder_id = "mondo.0000001"  # root of the MONDO tree
+    #     icd10_id = "I59.1"  # Heart disease, unspecified
+    #
+    #     with pytest.raises(ConfigError) as excinfo:
+    #         get_disorder_children(disorder_id)
+    #         if not MODE_OPEN:
+    #             assert "no API key set in the configuration" == str(excinfo.value)
+    #         else:
+    #             assert True
+    #
+    #     with pytest.raises(ConfigError) as excinfo:
+    #         get_disorder_parents(disorder_id)
+    #         if not MODE_OPEN:
+    #             assert "no API key set in the configuration" == str(excinfo.value)
+    #         else:
+    #             assert True
+    #
+    #     with pytest.raises(ConfigError) as excinfo:
+    #         get_disorder_ancestors(disorder_id)
+    #         if not MODE_OPEN:
+    #             assert "no API key set in the configuration" == str(excinfo.value)
+    #         else:
+    #             assert True
+    #
+    #     with pytest.raises(ConfigError) as excinfo:
+    #         get_disorder_descendants(disorder_id)
+    #         if not MODE_OPEN:
+    #             assert "no API key set in the configuration" == str(excinfo.value)
+    #         else:
+    #             assert True
+    #
+    #     with pytest.raises(ConfigError) as excinfo:
+    #         search_by_icd10(icd10_id)
+    #         if not MODE_OPEN:
+    #             assert "no API key set in the configuration" == str(excinfo.value)
+    #         else:
+    #             assert True
+
     def test_disorder_routes_fail(self, set_base_url):
         disorder_id = "mondo.0000001"  # root of the MONDO tree
         icd10_id = "I59.1"  # Heart disease, unspecified
 
-        with pytest.raises(ConfigError) as excinfo:
-            get_disorder_children(disorder_id)
-        assert "no API key set in the configuration" == str(excinfo.value)
+        if not MODE_OPEN:
+            # Test cases for when API key is required
+            with pytest.raises(ConfigError, match="no API key set in the configuration"):
+                get_disorder_children(disorder_id)
 
-        with pytest.raises(ConfigError) as excinfo:
-            get_disorder_parents(disorder_id)
-        assert "no API key set in the configuration" == str(excinfo.value)
+            with pytest.raises(ConfigError, match="no API key set in the configuration"):
+                get_disorder_parents(disorder_id)
 
-        with pytest.raises(ConfigError) as excinfo:
-            get_disorder_ancestors(disorder_id)
-        assert "no API key set in the configuration" == str(excinfo.value)
+            with pytest.raises(ConfigError, match="no API key set in the configuration"):
+                get_disorder_ancestors(disorder_id)
 
-        with pytest.raises(ConfigError) as excinfo:
-            get_disorder_descendants(disorder_id)
-        assert "no API key set in the configuration" == str(excinfo.value)
+            with pytest.raises(ConfigError, match="no API key set in the configuration"):
+                get_disorder_descendants(disorder_id)
 
-        with pytest.raises(ConfigError) as excinfo:
-            search_by_icd10(icd10_id)
-        assert "no API key set in the configuration" == str(excinfo.value)
+            with pytest.raises(ConfigError, match="no API key set in the configuration"):
+                search_by_icd10(icd10_id)
+        else:
+            # Test cases for open mode - these should not raise exceptions
+            try:
+                get_disorder_children(disorder_id)
+                get_disorder_parents(disorder_id)
+                get_disorder_ancestors(disorder_id)
+                get_disorder_descendants(disorder_id)
+                search_by_icd10(icd10_id)
+            except ConfigError:
+                pytest.fail("Should not raise ConfigError in open mode")
 
 
 class TestPPIRoute:
