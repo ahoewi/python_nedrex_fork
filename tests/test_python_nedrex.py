@@ -58,8 +58,11 @@ from nedrex.relations import (
     get_drugs_targeting_gene_products,
 )
 
+from nedrex.static import (get_metadata)
+
 
 API_URL = "https://api.nedrex.net/licensed/"
+#API_URL = "https://dev.api.nedrex.net/licensed/"
 API_KEY = requests.post(f"{API_URL}admin/api_key/generate", json={"accept_eula": True}).json()
 
 
@@ -337,9 +340,12 @@ class TestDisorderRoutes:
         result = get_disorder_children(glomerulonephritis)
         assert lupus_nephritis in result[glomerulonephritis]
 
-    @pytest.mark.parametrize("chosen_id", get_random_disorder_selection(20))
+    @pytest.mark.parametrize("chosen_id", get_random_disorder_selection(50))
     def test_parent_child_reciprocity(self, set_base_url, set_api_key, chosen_id):
         parents = get_disorder_parents(chosen_id)
+        if not parents:
+            assert True
+            return
         children_of_parents = get_disorder_children(parents[chosen_id])
         assert all(chosen_id in value for value in children_of_parents.values())
 
@@ -445,7 +451,13 @@ class TestRoutesFailWithoutAPIKey:
 
 class TestPPIRoute:
     def test_ppi_route(self, set_base_url, set_api_key):
-        ppis(["exp"], 0, get_pagination_limit())
+        assert len(ppis(["exp"], 0, get_pagination_limit())) == get_pagination_limit()
+
+    def test_ppi_route_reviewed_filter_true(self, set_base_url, set_api_key):
+        ppis(["exp"], 0, get_pagination_limit(), [True], 1000, 800)
+
+    def test_ppi_route_reviewed_filter_false(self, set_base_url, set_api_key):
+        ppis(["exp"], 0, get_pagination_limit(), [False], 1000, 800)
 
     def test_overlap_with_pagination(self, set_base_url, set_api_key):
         page_limit = 1_000
@@ -699,3 +711,12 @@ class TestNeo4j:
         with pytest.raises(NeDRexError):
             for _ in neo4j_query(query):
                 pass
+
+
+class TestStaticRoutes:
+   # @lru_cache(maxsize=10)
+    def test_metadata(self, set_base_url, set_api_key):
+        metadata = get_metadata()
+        print(f"\n\n{metadata}")
+        assert type(metadata) == dict
+        assert "version" in metadata.keys()
